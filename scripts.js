@@ -1,58 +1,68 @@
-let startTime, updatedTime, difference, tInterval, running = false, lapCounter = 0;
-const timeDisplay = document.querySelector('.time-display');
-const lapsContainer = document.querySelector('.laps');
+let currentPlayer = 'X';
+let gameState = ['', '', '', '', '', '', '', '', ''];
+const winningConditions = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]
+];
+const cells = document.querySelectorAll('.cell');
+const messageDisplay = document.getElementById('message');
+const restartButton = document.getElementById('restart');
 
-function startTimer() {
-    if (!running) {
-        startTime = new Date().getTime() - (difference || 0);
-        tInterval = setInterval(getShowTime, 1);
-        running = true;
+cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+restartButton.addEventListener('click', restartGame);
+
+function handleCellClick(event) {
+    const cell = event.target;
+    const cellIndex = cell.getAttribute('data-index');
+
+    if (gameState[cellIndex] !== '' || !checkGameActive()) {
+        return;
     }
-}
 
-function pauseTimer() {
-    if (running) {
-        clearInterval(tInterval);
-        difference = new Date().getTime() - startTime;
-        running = false;
+    gameState[cellIndex] = currentPlayer;
+    cell.textContent = currentPlayer;
+
+    if (checkWin()) {
+        messageDisplay.textContent = `Player ${currentPlayer} wins!`;
+        return;
     }
-}
 
-function resetTimer() {
-    clearInterval(tInterval);
-    running = false;
-    difference = 0;
-    lapCounter = 0;
-    timeDisplay.innerHTML = "00:00:00";
-    lapsContainer.innerHTML = "";
-}
-
-function recordLap() {
-    if (running) {
-        const lapTime = timeDisplay.innerHTML;
-        lapCounter++;
-        const lapElement = document.createElement('li');
-        lapElement.textContent = `Lap ${lapCounter}: ${lapTime}`;
-        lapsContainer.appendChild(lapElement);
+    if (isDraw()) {
+        messageDisplay.textContent = 'Game is a draw!';
+        return;
     }
+
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+    messageDisplay.textContent = `Player ${currentPlayer}'s turn`;
 }
 
-function getShowTime() {
-    updatedTime = new Date().getTime();
-    difference = updatedTime - startTime;
-
-    const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-    timeDisplay.innerHTML = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+function checkWin() {
+    for (const condition of winningConditions) {
+        const [a, b, c] = condition;
+        if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
+            return true;
+        }
+    }
+    return false;
 }
 
-function pad(num) {
-    return num.toString().padStart(2, '0');
+function isDraw() {
+    return gameState.every(cell => cell !== '');
 }
 
-document.getElementById('start').addEventListener('click', startTimer);
-document.getElementById('pause').addEventListener('click', pauseTimer);
-document.getElementById('reset').addEventListener('click', resetTimer);
-document.getElementById('lap').addEventListener('click', recordLap);
+function checkGameActive() {
+    return !checkWin() && !isDraw();
+}
+
+function restartGame() {
+    currentPlayer = 'X';
+    gameState = ['', '', '', '', '', '', '', '', ''];
+    cells.forEach(cell => (cell.textContent = ''));
+    messageDisplay.textContent = `Player ${currentPlayer}'s turn`;
+}
